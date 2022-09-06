@@ -1,0 +1,179 @@
+---
+title: "MATH513 - Practical Presentation"
+author: "Zachary Smith, Lukasz Gromelski, Ivan Chan, Goel Biju"
+date: "09 December 2021"
+#output: beamer_presentation
+classoption: landscape
+output:
+  pdf_document:
+    number_sections: true
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+\newpage
+
+## Engagement in the media and on Twitter
+### _Hypothesis 1: There is correlation between Follower Count and Tweet engagement_
+```{r, echo = FALSE, message=FALSE, warning=FALSE, results='hide', fig.show="hold", fig.width=15, fig.height=8}
+#install.packages('devtools')
+#devtools::install_github('bbc/bbplot')
+library(bbplot)
+library(ggplot2)
+require(plyr)
+library(dplyr)
+
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, results='hide', fig.show="hold", fig.width=15, fig.height=8}
+load("engagement.RData")
+
+
+plot <- ggplot() +
+  geom_point(data=twitch_engagement, aes(x=created_at, y=engagement_by_favorites, color="Twitch")) +
+  geom_point(data=youtube_engagement, aes(x=created_at, y=engagement_by_favorites, color="Youtube")) +
+  geom_smooth(data = twitch_engagement, aes(x=created_at, y=engagement_by_favorites), method = "lm", col = "#6441A4") +
+  geom_smooth(data = youtube_engagement, aes(x=created_at, y=engagement_by_favorites), method = "lm", col = "#FF0000") +
+  labs( x = "Time", 
+        y = "Number of favourites",
+        title = "Twitter status (tweet) favourites for @Youtube and @Twitch",
+        subtitle = "Engagement of @Twitch and @Youtube statuses by of favourites normalised for follower count") +
+  scale_x_datetime(limits = as.POSIXct(strptime(c("2021-09-16 00:00", "2021-12-5 23:59"), 
+                                                format = "%Y-%m-%d %H:%M")), 
+                   expand = c(0, 0)) +
+  scale_color_manual(
+    breaks = c("Twitch", "Youtube"),
+    values = c("#6441A4", "#FF0000")) +
+  scale_y_continuous(trans='log2') +
+  bbc_style()
+finalise_plot(plot, save_filepath = "filename_that_my_plot_should_be_saved_to-nc.png", source_name = "Source: Data collected from Twitter's REST API via rtweet")
+```
+
+* We show that, when engagement measured by favorite count is normalized proportional to the ratio of @Youtube and @Twitch brand account followers, the @Twitch brand account clearly has significantly higher relative engagement with its followers.
+
+\newpage
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, results='hide', fig.show="hold", fig.width=15, fig.height=8}
+load("intersection_and_sentiment.RData")
+
+plot <- ggplot() +
+  geom_line(data=twitch_percentage_engagement, aes(x=created_at, y=engagement_by_percentage, color="Twitch")) +
+  geom_line(data=youtube_percentage_engagement, aes(x=created_at, y=engagement_by_percentage, color="Youtube")) +
+  labs( x = "Time", 
+        y = "% Engagement",
+        title = "Relative engagement of @Youtube and @Twitch",
+        subtitle = "Percentage engagement of @Twitch and @Youtube accounts according to favourite count as a percentage of follower count") +
+  scale_x_datetime(limits = as.POSIXct(strptime(c("2021-09-16 00:00", "2021-12-5 23:59"), 
+                                                format = "%Y-%m-%d %H:%M")), 
+                   expand = c(0, 0)) +
+  scale_color_manual(
+    breaks = c("Twitch", "Youtube"),
+    values = c("#6441A4", "#FF0000")) +
+  bbc_style()
+finalise_plot(plot, save_filepath = "filename_that_my_plot_should_be_saved_to-nc.png", source_name = "Source: Data collected from Twitter's REST API via rtweet")
+```
+
+* We further show that, when engagement is adjusted relative to the total followers of the @Twitch and @Youtube brand accounts, while both brands engage actively with a small percentage of their overall followers, @Twitch has higher relative engagement over @Youtube.
+
+\newpage
+
+### _Hypothesis 2: There is correlation between media sentiment and Twitter brand sentiment_
+
+* Tweets from a brand account will share contents with media headlines for a given time period.
+* The media will reflect a similar sentiment to the brand account.
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, results='hide', fig.show="hold", fig.width=15, fig.height=8}
+load("intersection_and_sentiment.RData")
+
+plot <- ggplot() +
+  geom_point(data=twitch_timeline_bing, aes(x=Group.1, y=x, color="Twitter")) +
+  geom_point(data=twitch_rss_bing, aes(x=Group.1, y=x, color="Google News")) +
+  geom_smooth(data = twitch_timeline_bing, aes(x=Group.1, y=x, col = "Twitter"), method = "lm") +
+  geom_smooth(data = twitch_rss_bing, aes(x=Group.1, y=x, col = "Google News"), method = "lm") +
+  labs( x = "Time", 
+        y = "Sentiment",
+        title = "Sentiment score between Twitter and Media",
+        subtitle = "") +
+  scale_x_date(
+    date_labels = "%b-%d-%Y",
+    limits = as.Date(strptime(c("2021-03-16 00:00", "2021-12-30 23:59"), format = "%Y-%m-%d %H:%M")),
+    expand = c(0.1, 0)) +
+  scale_color_manual(
+    breaks = c("Twitter", "Google News"),
+    values = c("#1DA1F2", "#0F9D58")) +
+  bbc_style()
+finalise_plot(plot, save_filepath = "filename_that_my_plot_should_be_saved_to-nc.png", source_name = "Source: Data collected from Twitter's REST API via rtweet and Google's RSS feed via tidyRSS")
+
+
+```
+
+* We show that there is negligible correlation between media and Twitter sentiment.
+* This is likely due to article headlines taking a more neutral tone to appear factual, whilst Tweets are more emotive to engage with an audience.
+
+
+\newpage
+
+### _Hypothesis 3: There is intersection between article headline and Twitter tweet text_
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, results='hide', fig.show="hold", fig.width=20, fig.height=10}
+load("intersection_and_sentiment.RData")
+
+plot <- ggplot(data=twitch_intersection, aes(x=date, y=score, color="Twitter")) +
+  geom_line() +
+  geom_label( 
+    data = twitch_intersection %>% filter(set_score > 2), # Filter data first
+    aes(label=text)
+  ) +
+  geom_line(data=twitch_rss_aggregate_date, aes(x=root_week_date, y=n, color="Google News")) +
+  labs( x = "Time", 
+        y = "Sentiment",
+        title = "Intersection between Twitter and Media",
+        subtitle = "Intersection score between Twitch Twitter account and media headlines for Twitch") +
+  scale_x_datetime(
+    date_labels = "%b-%d-%Y",
+    limits = as.POSIXct(strptime(c("2021-03-16 00:00", "2021-12-30 23:59"), format = "%Y-%m-%d %H:%M")),
+    expand = c(0.1, 0)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  scale_color_manual(
+    breaks = c("Twitter", "Google News"),
+    values = c("#1DA1F2", "#0F9D58")) +
+  bbc_style()
+finalise_plot(plot, save_filepath = "filename_that_my_plot_should_be_saved_to-nc.png", source_name = "Source: Data collected from Twitter's REST API via rtweet and Google's RSS feed via tidyRSS")
+```
+
+* We show that there is a high intersection between article headlines and a brand's Twitter feed.
+* We also show that this correlation is relevant, as the intersection correlates with peaks in article count, indicating these intersections are not accidental.
+* Notable examples for the @Twitch brand account include spikes for new features as well as controversies.
+* There exists an increased volume of articles (and thus, increased intersection score) in recent weeks due to the limitations of Google's news feed.
+
+\newpage
+
+### Limitations of collecting data using Google's RSS feed
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, results='hide', fig.show="hold", fig.width=20, fig.height=10}
+load("media_vs_rss.RData")
+
+plot <- ggplot() +
+  geom_line(data=twitch_timeline_aggregate, aes(x=root_week_date, y=n, color="Twitter")) +
+  geom_line(data=twitch_rss_aggregate, aes(x=root_week_date, y=n, color="Google News")) +
+  labs( x = "Time", 
+        y = "Count",
+        title = "Frequency of @Twitch Twitter statuses and Twitch-related Google News articles",
+        subtitle = "Twitter status (tweet) count and Google News articles aggregated every week") +
+  scale_x_date(
+    date_labels = "%b-%d-%Y",
+    limits = as.Date(strptime(c("2021-03-16 00:00", "2021-12-30 23:59"), format = "%Y-%m-%d %H:%M"))) +
+  scale_color_manual(
+    breaks = c("Twitter", "Google News"),
+    values = c("#1DA1F2", "#0F9D58")) +
+  bbc_style()
+finalise_plot(plot, save_filepath = "filename_that_my_plot_should_be_saved_to-nc.png", source_name = "Source: Data collected from Twitter's REST API via rtweet and Google's RSS feed via tidyRSS")
+```
+
+* We collected article data for our media analysis using Google's RSS feed for the topic of "Twitch".
+* Relative to the available data collected from Twitter for the @Twitch brand account, we found that the RSS feed articles were not evenly distributed over time, resulting in a concentration of articles within the last few weeks.
+* Whilst this limited the scope of our analysis, the data was still provably useful.
+
+\newpage
